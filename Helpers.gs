@@ -182,6 +182,8 @@ function parseResponses(responses){
     }
   });
 
+  result = filterResults(result);
+
   result.forEach(function(event){
     if (!event.hasProperty('uid')){
       event.updatePropertyWithValue('uid', Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, event.toString()).toString());
@@ -198,6 +200,45 @@ function parseResponses(responses){
   });
 
   return result;
+}
+
+/**
+ * Applies filters to source events based on filters defined in filters.gs
+ *
+ * @param {Array.ICALComponent} Array with all events from the source calendars
+ * @return {Array.ICALComponent} Array with filtered events
+ */
+function filterResults(events){
+  Logger.log(`Applying ${filters.length} filters on ${events.length} events.`);
+
+  for (var filter of filters){
+    events = events.filter(function(event){
+      try{
+        if (["dtstart", "dtend"].includes(filter.parameter)){
+          let referenceDate = new ICAL.Time.fromJSDate(new Date()).adjust(filter.offset,0,0,0);
+          switch (filter.comparison){
+            case ">":
+              return ((new ICAL.Time.fromString(event.getFirstPropertyValue(filter.parameter).toString(), event.getFirstProperty(filter.parameter)).compare(referenceDate) > 0) ^ (filter.type == "exclude"));
+            case "<":
+              return ((new ICAL.Time.fromString(event.getFirstPropertyValue(filter.parameter).toString(), event.getFirstProperty(filter.parameter)).compare(referenceDate) < 0) ^ (filter.type == "exclude"));
+            case "=":
+              return ((new ICAL.Time.fromString(event.getFirstPropertyValue(filter.parameter).toString(), event.getFirstProperty(filter.parameter)).compare(referenceDate) = 0) ^ (filter.type == "exclude"));
+            case "default":
+              return true;
+          }
+        }
+        else{
+          let regexString = `${(["equals", "begins with"].includes(filter.comparison)) ? "^" : ""}(${filter.criterias.join("|")})${(filter.comparison == "equals") ? "$" : ""}`;
+          let regex = new RegExp(regexString);
+          return (regex.test(event.getFirstPropertyValue(filter.parameter).toString()) ^ (filter.type == "exclude"));
+        } 
+      }
+      catch(e){return (filter.type == "exclude");}
+    });
+  }
+
+  Logger.log(`${events.length} events left.`);
+  return events;
 }
 
 /**
@@ -307,11 +348,13 @@ function createEvent(event, calendarTz){
     newEvent = {
       start: {
         dateTime : icalEvent.startDate.toString(),
-        timeZone : tzid
+        //timeZone : tzid
+        timeZone : "Etc/UTC"
       },
       end: {
         dateTime : icalEvent.endDate.toString(),
-        timeZone : tzid
+        //timeZone : tzid
+        timeZone : "Etc/UTC"
       },
     };
   }
@@ -884,7 +927,7 @@ function sendSummary() {
   var subject;
   var body;
 
-  var subject = `GAS-ICS-Sync Execution Summary: ${addedEvents.length} new, ${modifiedEvents.length} modified, ${removedEvents.length} deleted`;
+  var subject = `GAS-Roster Execution Summary: ${addedEvents.length} new, ${modifiedEvents.length} modified, ${removedEvents.length} deleted`;
   addedEvents = condenseCalendarMap(addedEvents);
   modifiedEvents = condenseCalendarMap(modifiedEvents);
   removedEvents = condenseCalendarMap(removedEvents);
