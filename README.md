@@ -1,3 +1,9 @@
+This fork combines the filter branch and option to set removing of old events. There has also been some minor changes to the default settings. 
+The main purpose of this fork is so that it can be used with a specific company rostering application that generates a webcals link but has TZID and content issues. The changes include forcing of UTC for all events, default settings and included filters. 
+I will include a script to change events based on content, and I plan on including it with the install function - when I get around to it. 
+
+____________________
+
 # GAS-ICS-Sync
 
 ### ⚠️⚠️ This project is looking for contributors and people to help answer questions! Please message @developers on the Discord! ⚠️⚠️
