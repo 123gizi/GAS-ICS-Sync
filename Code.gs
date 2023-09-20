@@ -157,6 +157,10 @@ function startSync(){
 
     //------------------------ Fetch URL items ------------------------
     var responses = fetchSourceCalendars(sourceCalendarURLs);
+    if (responses.length == 0){
+      Logger.log("Error Syncing " + targetCalendarName + ". Skipping...");
+      continue;
+    }
     Logger.log("Syncing " + responses.length + " calendars to " + targetCalendarName);
 
     //------------------------ Get target calendar information------------------------
